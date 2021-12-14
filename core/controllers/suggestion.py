@@ -25,6 +25,7 @@ from core import utils
 from core.constants import constants
 from core.controllers import acl_decorators
 from core.controllers import base
+from core.controllers import domain_objects_validator
 from core.domain import exp_fetchers
 from core.domain import fs_services
 from core.domain import html_cleaner
@@ -329,6 +330,23 @@ class SuggestionListHandler(base.BaseHandler):
 class UpdateTranslationSuggestionHandler(base.BaseHandler):
     """Handles update operations relating to translation suggestions."""
 
+    URL_PATH_ARGS_SCHEMAS = {
+        'suggestion_id': {
+            'schema': {
+                'type': 'basestring',
+            }
+        }
+    }
+    HANDLER_ARGS_SCHEMAS = {
+        'PUT': {
+            'translation_html': {
+                'schema': {
+                    'type': 'html'
+                }
+            }
+        }
+    }
+
     @acl_decorators.can_update_suggestion
     def put(self, suggestion_id):
         """Handles PUT requests.
@@ -346,14 +364,16 @@ class UpdateTranslationSuggestionHandler(base.BaseHandler):
                 % (suggestion_id)
             )
 
-        if self.payload.get('translation_html') is None:
+        if self.normalized_payload.get('translation_html') is None:
             raise self.InvalidInputException(
                 'The parameter \'translation_html\' is missing.'
             )
 
         if (
-                not isinstance(self.payload.get('translation_html'), str)
-                and not isinstance(self.payload.get('translation_html'), list)
+                not isinstance(
+                    self.normalized_payload.get('translation_html'), str)
+                and not isinstance(
+                    self.normalized_payload.get('translation_html'), list)
         ):
             raise self.InvalidInputException(
                 'The parameter \'translation_html\' should be a string or a' +
@@ -361,7 +381,7 @@ class UpdateTranslationSuggestionHandler(base.BaseHandler):
             )
 
         suggestion_services.update_translation_suggestion(
-            suggestion_id, self.payload.get('translation_html'))
+            suggestion_id, self.normalized_payload.get('translation_html'))
 
         self.render_json(self.values)
 
@@ -369,9 +389,35 @@ class UpdateTranslationSuggestionHandler(base.BaseHandler):
 class UpdateQuestionSuggestionHandler(base.BaseHandler):
     """Handles update operations relating to question suggestions."""
 
+    URL_PATH_ARGS_SCHEMAS = {
+        'suggestion_id': {
+            'schema': {
+                'type': 'basestring',
+            }
+        }
+    }
+    HANDLER_ARGS_SCHEMAS = {
+        'POST': {
+            'skill_difficulty': {
+                'schema': {
+                    'type': 'float',
+                    'choices':
+                        constants.SKILL_DIFFICULTY_LABEL_TO_FLOAT.values()
+                }
+            },
+            'question_state_data': {
+                'schema': {
+                    'type': 'object_dict',
+                    'validation_method':
+                        domain_objects_validator.validate_state_dict
+                }
+            }
+        }
+    }
+
     @acl_decorators.can_update_suggestion
     def post(self, suggestion_id):
-        """Handles PUT requests.
+        """Handles POST requests.
 
         Raises:
             InvalidInputException. The suggestion is already handled.
@@ -389,29 +435,14 @@ class UpdateQuestionSuggestionHandler(base.BaseHandler):
                 % (suggestion_id)
             )
 
-        if self.payload.get('skill_difficulty') is None:
-            raise self.InvalidInputException(
-                'The parameter \'skill_difficulty\' is missing.'
-            )
-
-        if not isinstance(self.payload.get('skill_difficulty'), float):
-            raise self.InvalidInputException(
-                'The parameter \'skill_difficulty\' should be a decimal.'
-            )
-
-        if self.payload.get('question_state_data') is None:
-            raise self.InvalidInputException(
-                'The parameter \'question_state_data\' is missing.'
-            )
-
         question_state_data_obj = state_domain.State.from_dict(
-            self.payload.get('question_state_data'))
+            self.normalized_payload.get('question_state_data'))
         question_state_data_obj.validate(None, False)
 
         suggestion_services.update_question_suggestion(
             suggestion_id,
-            self.payload.get('skill_difficulty'),
-            self.payload.get('question_state_data'))
+            self.normalized_payload.get('skill_difficulty'),
+            self.normalized_payload.get('question_state_data'))
 
         self.render_json(self.values)
 

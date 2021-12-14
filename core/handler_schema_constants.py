@@ -104,8 +104,6 @@ HANDLER_CLASS_NAMES_WHICH_STILL_NEED_SCHEMAS = [
     'TopicViewerPage',
     'TopicsAndSkillsDashboardPage',
     'UnsentFeedbackEmailHandler',
-    'UpdateQuestionSuggestionHandler',
-    'UpdateTranslationSuggestionHandler',
     'UrlHandler',
     'UserInfoHandler',
     'UserSubmittedSuggestionsHandler',

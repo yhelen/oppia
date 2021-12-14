@@ -891,7 +891,7 @@ class SuggestionUnitTests(test_utils.GenericTestBase):
             expected_status_int=400)
         self.assertEqual(
             response['error'],
-            'The parameter \'translation_html\' is missing.')
+            'Missing key in handler args: translation_html.')
         self.logout()
 
     def test_cannot_update_translation_with_invalid_translation_html(self):
@@ -911,17 +911,20 @@ class SuggestionUnitTests(test_utils.GenericTestBase):
             'exp1', 1, self.translator_id, change_dict, 'description')
 
         csrf_token = self.get_new_csrf_token()
+        translation_html_value = 12
         response = self.put_json(
             '%s/%s' % (
                 feconf.UPDATE_TRANSLATION_SUGGESTION_URL_PREFIX,
                 suggestion.suggestion_id), {
-                    'translation_html': 12
+                    'translation_html': translation_html_value
                 },
             csrf_token=csrf_token,
             expected_status_int=400)
         self.assertEqual(
             response['error'],
-            'The parameter \'translation_html\' should be a string or a list.')
+            'Schema validation for \'translation_html\' failed: '
+            'Expected unicode HTML string, received %d'
+            % translation_html_value)
         self.logout()
 
     def test_update_suggestion_updates_question_suggestion_content(self):
@@ -1051,12 +1054,14 @@ class SuggestionUnitTests(test_utils.GenericTestBase):
             feconf.UPDATE_QUESTION_SUGGESTION_URL_PREFIX,
             suggestion.suggestion_id), {
                 'question_state_data': question_state_data,
-                'skill_difficulty': '0.6'
+                'skill_difficulty': '1.0'
             }, csrf_token=csrf_token, expected_status_int=400)
 
         self.assertEqual(
             response['error'],
-            'The parameter \'skill_difficulty\' should be a decimal.')
+            'Schema validation for \'skill_difficulty\' failed: '
+            'Received 1.0 which is not in the allowed range of choices: '
+            'dict_values([0.3, 0.6, 0.9])')
         self.logout()
 
     def test_cannot_update_question_without_state_data(self):
@@ -1110,7 +1115,7 @@ class SuggestionUnitTests(test_utils.GenericTestBase):
 
         self.assertEqual(
             response['error'],
-            'The parameter \'question_state_data\' is missing.')
+            'Missing key in handler args: question_state_data.')
         self.logout()
 
     def test_cannot_update_question_without_skill_difficulty(self):
@@ -1164,7 +1169,7 @@ class SuggestionUnitTests(test_utils.GenericTestBase):
 
         self.assertEqual(
             response['error'],
-            'The parameter \'skill_difficulty\' is missing.')
+            'Missing key in handler args: skill_difficulty.')
         self.logout()
 
     def test_cannot_update_already_handled_question(self):
